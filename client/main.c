@@ -3,9 +3,6 @@
  * - clean up code
  * - add support for IPv6
  * - print messages in case of error
- * - add "-h" (HELP) command line option
- * - add "-s" (SERVER) command line option
- * - add "-v" (VERBOSE) logging option
  * - test on Windows
  * - separate x-platform sockets code from WHOIS code
  *
@@ -16,19 +13,104 @@
 #include "whois.h"
 
 /* default to a public .com WHOIS server */
-static const char *whois_default_host = "whois.verisign-grs.com";
+static char *srv_host = "whois.verisign-grs.com";
+
+/* verbose logging flag */
+static int verbose = 0;
+
+/* query string */
+static char *query = 0;
+
+/* print program help dialog */
+static void print_help(void) {
+    printf(
+        "================================================================\n"
+        "This sample program implements a WHOIS client for learning\n"
+        "purposes, according to RFC 3912.\n\n"
+        "The WHOIS program is called as (args in brackets optional):\n"
+        "\twhois query [-s server] [-v]\n"
+        "OR\n"
+        "\twhois query -h\n\n"
+        "with arguments:\n"
+        "\tquery: The query to send to the WHOIS server\n"
+        "\t-h: Print this help message and exit the program\n"
+        "\t-s hostname: This option provides the IP address or hostname\n"
+        "\t\tof the WHOIS server to query\n"
+        "\t-v: Enable verbose logging mode\n"
+        "================================================================\n");
+}
+
+/* parse and handle command line arguments */
+static void parse_args(int argc, char **argv) {
+    char *arg, *next;
+    size_t arg_len;
+    
+    for(int i = 1; i < argc; ++i) {
+        arg = argv[i];
+        arg_len = strlen(arg);
+        
+        if(i + 1 < argc) {
+            next = argv[i + 1];
+        } else {
+            next = 0;
+        }
+        
+        /* consider all args preceded by a hyphen to be options */
+        if(arg[0] == '-' && arg_len > 1) {
+            switch(arg[1]) {
+                
+            /* print help text */
+            case 'h':
+                print_help();
+                exit(EXIT_SUCCESS);
+                break;
+                
+            /* set destination server */
+            case 's':
+                if(next) {
+                    printf("set server : %s\n", next);
+                    srv_host = next;
+                    ++i;
+                } else {
+                    printf("error : a server name must follow option -s\n");
+                }
+                break;
+                
+            /* enable verbose logging */
+            case 'v':
+                printf("set verbose logging ON\n");
+                verbose = 1;
+                break;
+            
+            /* invalid argument passed to program */
+            default:
+                printf(
+                    "Error: unrecognized argument : %s\n"
+                    "See help (-h) for list of allowed arguments.\n", 
+                    arg);
+                    
+                exit(EXIT_FAILURE);
+                break;
+            }
+        
+        /* consider arguments not preceded by a hyphen to be a query */
+        } else {
+            query = arg;
+        }
+    }
+}
 
 int main(int argc, char **argv) {
-    const char *srv_host = whois_default_host;
     struct addrinfo ai_hints, *srv_addr_list, *ai_node;
     xp_socket sock;
     
-    /* temporary until a command line option is set */
-    int verbose = 0;
+    printf("\n");
     
     /* validate command line arguments */
-    if(argc < 2) {
-        printf("error: %s requires at least one argument (destination hostname)\n", argv[0]);
+    parse_args(argc, argv);
+    
+    if(!query) {
+        printf("error: 'query' argument required (see option -h for help)\n");
         return(EXIT_FAILURE);
     }
         
@@ -125,5 +207,6 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
     
+    printf("\n");
     return EXIT_SUCCESS;
 }
