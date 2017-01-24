@@ -9,3 +9,6 @@
 
 # ignore txt files (for info)
 *.txt
+
+# ignore EXE files
+*.exe
