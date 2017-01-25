@@ -3,9 +3,6 @@
  * - clean up code
  * - add support for IPv6
  * - print messages in case of error
- * - test on Windows
- * - separate x-platform sockets code from WHOIS code
- *
  */
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +17,9 @@ static int verbose = 0;
 
 /* query string */
 static char *query = 0;
+
+/* address family to use for communication (IPv4=AF_INET or IPv6=AF_INET6) */
+static int addr_family = AF_INET;
 
 /* print program help dialog */
 static void print_help(void) {
@@ -81,6 +81,12 @@ static void parse_args(int argc, char **argv) {
                 printf("set verbose logging ON\n");
                 verbose = 1;
                 break;
+
+	    /* enable IPv6 communication */
+	    case '6':
+		printf("enabled IPv6\n");
+                addr_family = AF_INET6;
+		break;
             
             /* invalid argument passed to program */
             default:
@@ -126,7 +132,7 @@ int main(int argc, char **argv) {
     
     /* DNS lookup to get destination address info */
     memset(&ai_hints, 0, sizeof(ai_hints));
-    ai_hints.ai_family   = AF_INET;
+    ai_hints.ai_family   = addr_family;
     ai_hints.ai_socktype = SOCK_STREAM;
     
     if(getaddrinfo(srv_host, WHOIS_SRV_LISTEN_PORT_STR, &ai_hints, &srv_addr_list)) {
@@ -138,8 +144,8 @@ int main(int argc, char **argv) {
         printf("getaddrinfo : found destination addresses\n");
     }
     
-    /* open an IPv4 TPC socket (TODO: add option to open an IPv6 socket) */
-    if((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+    /* open a TPC socket */
+    if((sock = socket(addr_family, SOCK_STREAM, 0)) == INVALID_SOCKET) {
         printf("failed to create new socket\n");
         exit(EXIT_FAILURE);
     }
