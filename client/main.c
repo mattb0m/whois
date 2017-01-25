@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     }
     
     /* send WHOIS request to server */
-    if(!whois_send(sock, argv[1])) {
+    if(!whois_send(sock, query)) {
         printf("failed to send request to server\n");
         exit(EXIT_FAILURE);
     }
